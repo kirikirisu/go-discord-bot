@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -12,6 +13,7 @@ import (
 	"syscall"
 
 	"github.com/bwmarrin/discordgo"
+	_ "github.com/lib/pq"
 )
 
 var (
@@ -39,9 +41,17 @@ type Main struct {
 	Humidity  int     `json:"humidity"`
 }
 
+var Db *sql.DB
+
 func init() {
 	flag.StringVar(&Token, "t", "", "Bot Token")
 	flag.Parse()
+
+	var err error
+	Db, err = sql.Open("postgres", "user=discordbot dbname=discordbot password=discordbot sslmode=disable")
+	if err != nil {
+		panic(err)
+	}
 }
 
 func main() {
