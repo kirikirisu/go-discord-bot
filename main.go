@@ -10,7 +10,9 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
+	"time"
 
 	"github.com/bwmarrin/discordgo"
 	_ "github.com/lib/pq"
@@ -39,6 +41,17 @@ type Main struct {
 	TempMax   float32 `json:"temp_max"`
 	Pressure  int     `json:"pressure"`
 	Humidity  int     `json:"humidity"`
+}
+
+type TodoList struct {
+	Todos []Todo
+}
+
+type Todo struct {
+	Id        int
+	CreatedAt time.Time
+	Content   string
+	Active    bool
 }
 
 var Db *sql.DB
@@ -100,10 +113,6 @@ func getWeather(wch chan Data) {
 	wch <- data
 }
 
-func sendMessage(s *discordgo.Session, m *discordgo.MessageCreate) {
-	s.ChannelMessage(m.ChannelID, "I'm Back !!!!")
-}
-
 func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	if m.Author.ID == s.State.User.ID {
 		return
@@ -122,4 +131,26 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		s.ChannelMessageSend(m.ChannelID, w)
 	}
 
+	if strings.HasPrefix(m.Content, "!set") {
+		words := strings.Fields(m.Content)
+
+		if len(words) == 1 {
+			s.ChannelMessageSend(m.ChannelID, "plese input todo")
+		}
+
+		if len(words) == 2 {
+			todo := Todo{Content: words[1], CreatedAt: time.Now()}
+			err := todo.Create()
+			if err != nil {
+				fmt.Println("error insert todo", err)
+				return
+			}
+			s.ChannelMessageSend(m.ChannelID, "save!!")
+		}
+	}
+}
+
+func (todo *Todo) Create() (err error) {
+	err = Db.QueryRow("insert into todos (content, created_at) values ($1, $2) returning id", todo.Content, todo.CreatedAt).Scan(&todo.Id)
+	return
 }

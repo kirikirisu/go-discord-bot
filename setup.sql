@@ -1,11 +1,9 @@
-create table users (
-  id serial primary key,
-  name varcha(255),
-)
+drop table users if exists;
+drop table todos if exists;
 
 create table todos (
   id serial primary key,
-  user_id integer references users(id),
   created_at timestamp not null,
   content text,
-)
+  active boolean default false
+);
